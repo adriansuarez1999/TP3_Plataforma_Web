@@ -21,28 +21,32 @@ def inicializar_base_datos():
     """)
     
     conexion.commit()
+    return True, "¡Alumno registrado con éxito!"
+  except sqlite3.IntegrityError:
+    return False, "El correo electrónico ya se encuentra registrado."
+  finally:
     conexion.close()
 
-def registrar_inscripcion(dni_alumno, id_materia):
-    """
-    Desarrolla la lógica de base de datos para registrar la inscripción.
-    Sprint 3 - Tarea 2 (Yancel).
-    """
+
+def guardar_asistencias(paquete):
     conexion = conectar_db()
     cursor = conexion.cursor()
-    
+
     try:
-        cursor.execute(
-            "INSERT INTO Inscripcion (ID_Alumno, ID_Materia, Fecha) VALUES (?, ?, datetime('now'))",
-            (dni_alumno, id_materia)
+        cursor.executemany(
+            """
+            INSERT INTO asistencias (id_alumno, id_materia, fecha, estado)
+            VALUES (?, ?, ?, ?)
+            """,
+            paquete,
         )
+
         conexion.commit()
-        return True, "Inscripción registrada con éxito."
-    except sqlite3.IntegrityError as e:
+        return True, "Asistencias guardadas correctamente."
+
+    except sqlite3.Error as error:
         conexion.rollback()
-        return False, f"Error de integridad (posible duplicado o datos inválidos): {e}"
-    except Exception as e:
-        conexion.rollback()
-        return False, f"Error al registrar inscripción: {e}"
+        return False, f"No se pudieron guardar las asistencias: {error}"
+
     finally:
         conexion.close()
