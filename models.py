@@ -1,21 +1,25 @@
 import sqlite3
 
-
 def conectar_db():
-  return sqlite3.connect("plataforma.db")
+    """Establece y retorna la conexión a la base de datos SQLite."""
+    return sqlite3.connect("plataforma.db")
 
-
-def insertar_alumno(nombre, apellido, email, DNI, fecha_nacimiento):
-  conexion = conectar_db()
-  cursor = conexion.cursor()
-  try:
-    cursor.execute(
-        """
-            INSERT INTO alumnos (nombre, apellido, email, DNI, fecha_nacimiento, activo)
-            VALUES (?, ?, ?, ?, ?, 1)
-        """,
-        (nombre, apellido, email, DNI, fecha_nacimiento),
-    )
+def inicializar_base_datos():
+    """Crea las tablas iniciales y la tabla de inscripciones si no existen."""
+    conexion = conectar_db()
+    cursor = conexion.cursor()
+    
+    # Tabla Inscripcion (Sprint 3)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS Inscripcion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ID_Alumno TEXT NOT NULL,
+            ID_Materia INTEGER NOT NULL,
+            Fecha TEXT NOT NULL,
+            UNIQUE(ID_Alumno, ID_Materia)
+        )
+    """)
+    
     conexion.commit()
     return True, "¡Alumno registrado con éxito!"
   except sqlite3.IntegrityError:

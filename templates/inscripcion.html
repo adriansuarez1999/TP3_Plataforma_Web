@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscripción a Materias</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="pagina-inscripcion">
+    <main class="container container-inscripcion">
+        <h2>Materias disponibles</h2>
+
+        <p class="texto-ayuda">
+            Ingrese su DNI y seleccione la materia en la que desea inscribirse.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for categoria, mensaje in messages %}
+                    <div class="alert {{ categoria }}">{{ mensaje }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="/inscribir" method="POST">
+            <div class="form-group">
+                <label for="dni_alumno">DNI del alumno:</label>
+                <input
+                    type="text"
+                    id="dni_alumno"
+                    name="dni_alumno"
+                    placeholder="Ingrese su DNI"
+                    required
+                >
+            </div>
+
+            {% if materias %}
+                <div class="tabla-contenedor">
+                    <table class="tabla-materias">
+                        <thead>
+                            <tr>
+                                <th>Materia</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for materia in materias %}
+                                <tr>
+                                    <td>{{ materia[1] }}</td>
+                                    <td>
+                                        <button
+                                            type="submit"
+                                            class="btn-inscribirse"
+                                            name="id_materia"
+                                            value="{{ materia[0] }}"
+                                        >
+                                            Inscribirse
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="sin-materias">
+                    No hay materias disponibles en este momento.
+                </p>
+            {% endif %}
+        </form>
+
+        <a href="/" class="enlace-volver">Volver al registro</a>
+    </main>
+</body>
+</html>
