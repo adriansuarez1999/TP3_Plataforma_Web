@@ -1,42 +1,88 @@
 import re
-from flask import Flask, flash, redirect, render_template, request, url_for
-from models import insertar_alumno, inicializar_base_datos, registrar_inscripcion
+
+from flask import (
+    Flask,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+
+from models import (
+    conectar_db,
+    guardar_asistencias,
+    insertar_alumno,
+    inicializar_base_datos,
+    registrar_inscripcion,
+)
+
+from asistencia_controlador import (
+    procesar_formulario_asistencia,
+)
 
 app = Flask(__name__)
+
 app.secret_key = "clave_secreta_para_flash"
 
-# Inicializar la base de datos y tablas al arrancar la aplicación
+
+# =========================================================
+# INICIALIZACIÓN
+# =========================================================
+
 inicializar_base_datos()
+
+
+# =========================================================
+# SPRINT 1 - REGISTRO DE ALUMNOS
+# =========================================================
 
 
 @app.route("/", methods=["GET", "POST"])
 def registrar():
+
     if request.method == "POST":
-        # Capturamos y limpiamos espacios
+
         nombre = request.form.get("nombre", "").strip()
+
         apellido = request.form.get("apellido", "").strip()
+
         email = request.form.get("email", "").strip()
+
         DNI = request.form.get("DNI", "").strip()
+
         fecha_nacimiento = request.form.get("fecha_nacimiento", "").strip()
 
-        # --- TAREA 3: VALIDACIONES ---
-        # 1. Validar campos vacíos
+        # =================================================
+        # VALIDACIONES
+        # =================================================
+
         if not nombre or not apellido or not email or not DNI or not fecha_nacimiento:
+
             flash("Todos los campos son obligatorios.", "error")
+
             return redirect(url_for("registrar"))
 
-        # 2. Validar formato de correo electrónico
         email_regex = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+
         if not re.match(email_regex, email):
+
             flash("El formato del correo electrónico no es válido.", "error")
+
             return redirect(url_for("registrar"))
 
-        # --- TAREA 2: IMPLEMENTACIÓN CON LA BD ---
+        # =================================================
+        # REGISTRO EN BD
+        # =================================================
+
         exito, mensaje = insertar_alumno(nombre, apellido, email, DNI, fecha_nacimiento)
 
         if exito:
+
             flash(mensaje, "exito")
+
         else:
+
             flash(mensaje, "error")
 
         return redirect(url_for("registrar"))
@@ -44,40 +90,164 @@ def registrar():
     return render_template("registro.html")
 
 
-# ==========================================
-# SPRINT 3 - Tarea 2: Registrar Inscripción (Yancel)
-# ==========================================
-@app.route('/inscribir', methods=['POST'])
+# =========================================================
+# SPRINT 3 - INSCRIPCIÓN DE ALUMNOS
+# =========================================================
+
+
+@app.route("/inscribir", methods=["POST"])
 def inscribir():
-    dni_alumno = request.form.get('dni_alumno')
-    id_materia = request.form.get('id_materia')
-    
-    # Llamada a la función de inscripción desarrollada en models.py
+
+    dni_alumno = request.form.get("dni_alumno")
+
+    id_materia = request.form.get("id_materia")
+
     exito, mensaje = registrar_inscripcion(dni_alumno, id_materia)
-    
+
     if exito:
+
         flash(mensaje, "exito")
+
     else:
+
         flash(mensaje, "error")
-        
-    return redirect(url_for('registrar'))
+
+    return redirect(url_for("registrar"))
 
 
-# ==========================================
-# SPRINT 4 - Tarea 4: Vista de Toma de Asistencia (Yancel)
-# ==========================================
-@app.route('/asistencia/<int:id_materia>')
+# =========================================================
+# SPRINT 4 - VISTA DE ASISTENCIA
+# =========================================================
+
+
+@app.route("/asistencia/<int:id_materia>")
 def vista_asistencia(id_materia):
-    # Datos de ejemplo para renderizar la grilla y los checkboxes de asistencia
-    materia = {"id": id_materia, "nombre": "Programación II"}
-    alumnos = [
-        {"dni": "40111222", "nombre": "Juan", "apellido": "Pérez"},
-        {"dni": "41222333", "nombre": "María", "apellido": "Gómez"},
-        {"dni": "42333444", "nombre": "Carlos", "apellido": "Rodríguez"}
-    ]
-    
-    return render_template('asistencia.html', alumnos=alumnos, materia=materia)
 
+    conexion = conectar_db()
+
+    conexion.row_factory = __import__("sqlite3").Row
+
+    cursor = conexion.cursor()
+
+    try:
+
+        # -------------------------------------------------
+        # Obtener materia
+        # -------------------------------------------------
+
+        materia_db = cursor.execute(
+            """
+            SELECT
+                id,
+                nombre
+            FROM materias
+            WHERE id = ?
+            """,
+            (id_materia,),
+        ).fetchone()
+
+        if materia_db is None:
+
+            flash("La materia seleccionada no existe.", "error")
+
+            return redirect(url_for("registrar"))
+
+        materia = {
+            "id": materia_db["id"],
+            "nombre": materia_db["nombre"],
+        }
+
+        # -------------------------------------------------
+        # Obtener alumnos realmente inscriptos
+        # -------------------------------------------------
+
+        filas = cursor.execute(
+            """
+            SELECT
+                a.id,
+                a.DNI,
+                a.nombre,
+                a.apellido
+            FROM alumnos AS a
+
+            INNER JOIN inscripciones AS i
+                ON i.id_alumno = a.id
+
+            WHERE i.id_materia = ?
+              AND a.activo = 1
+
+            ORDER BY
+                a.apellido,
+                a.nombre
+            """,
+            (id_materia,),
+        ).fetchall()
+
+        alumnos = []
+
+        for fila in filas:
+
+            alumnos.append(
+                {
+                    "id": fila["id"],
+                    "dni": fila["DNI"],
+                    "nombre": fila["nombre"],
+                    "apellido": fila["apellido"],
+                }
+            )
+
+        return render_template("asistencia.html", alumnos=alumnos, materia=materia)
+
+    finally:
+
+        conexion.close()
+
+
+# =========================================================
+# SPRINT 4 - GUARDAR ASISTENCIA
+# =========================================================
+
+
+@app.route("/guardar_asistencia", methods=["POST"])
+def guardar_asistencia():
+
+    id_materia = request.form.get("id_materia")
+
+    exito, resultado = procesar_formulario_asistencia(request.form, id_materia)
+
+    # -----------------------------------------------------
+    # Error al preparar datos
+    # -----------------------------------------------------
+
+    if not exito:
+
+        flash(resultado, "error")
+
+        return redirect(url_for("vista_asistencia", id_materia=id_materia))
+
+    paquete = resultado
+
+    # -----------------------------------------------------
+    # Guardar mediante el Modelo
+    # -----------------------------------------------------
+
+    exito_guardado, mensaje = guardar_asistencias(paquete)
+
+    if exito_guardado:
+
+        flash(mensaje, "exito")
+
+    else:
+
+        flash(mensaje, "error")
+
+    return redirect(url_for("vista_asistencia", id_materia=id_materia))
+
+
+# =========================================================
+# EJECUCIÓN
+# =========================================================
 
 if __name__ == "__main__":
+
     app.run(debug=True)
