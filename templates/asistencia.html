@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Toma de Asistencia - Panel Docente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Registro de Asistencia</h1>
+        <form action="/guardar_asistencia" method="POST">
+            <input type="hidden" name="id_materia" value="{{ materia.id }}">
+            
+            <table class="tabla-asistencia">
+                <thead>
+                    <tr>
+                        <th>DNI / Legajo</th>
+                        <th>Alumno</th>
+                        <th>Estado (Presente)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alumno in alumnos %}
+                    <tr>
+                        <td>{{ alumno.dni }}</td>
+                        <td>{{ alumno.nombre }} {{ alumno.apellido }}</td>
+                        <td>
+                            <!-- Checkbox para marcar la asistencia -->
+                            <input type="checkbox" name="asistencia_{{ alumno.dni }}" value="Presente" checked>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn-guardar">Guardar Asistencia</button>
+        </form>
+    </div>
+</body>
+</html>
