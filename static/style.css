@@ -77,3 +77,78 @@ button:hover {
     color: #155724;
     border: 1px solid #c3e6cb;
 }
+
+/* Sprint 3 - Vista de inscripción a materias */
+
+body.pagina-inscripcion {
+    min-height: 100vh;
+    height: auto;
+    align-items: flex-start;
+    padding: 40px 20px;
+    box-sizing: border-box;
+}
+
+.container-inscripcion {
+    max-width: 700px;
+}
+
+.texto-ayuda {
+    color: #555;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.tabla-contenedor {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tabla-materias {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.tabla-materias th,
+.tabla-materias td {
+    padding: 12px;
+    border: 1px solid #dddddd;
+    text-align: left;
+}
+
+.tabla-materias th {
+    background-color: #f1f3f5;
+    color: #333333;
+}
+
+.tabla-materias td:last-child,
+.tabla-materias th:last-child {
+    width: 150px;
+    text-align: center;
+}
+
+.btn-inscribirse {
+    width: auto;
+    padding: 8px 16px;
+}
+
+.sin-materias {
+    padding: 15px;
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.enlace-volver {
+    display: block;
+    margin-top: 20px;
+    color: #2878b5;
+    text-align: center;
+    text-decoration: none;
+}
+
+.enlace-volver:hover {
+    text-decoration: underline;
+}
