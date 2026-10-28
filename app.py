@@ -21,6 +21,12 @@ from asistencia_controlador import (
     procesar_formulario_asistencia,
 )
 
+from notas_consultas import insertar_nota
+
+from validaciones_notas import (
+    evaluar_nota,
+)
+
 app = Flask(__name__)
 
 app.secret_key = "clave_secreta_para_flash"
@@ -242,6 +248,118 @@ def guardar_asistencia():
         flash(mensaje, "error")
 
     return redirect(url_for("vista_asistencia", id_materia=id_materia))
+
+
+# =========================================================
+# SPRINT 2 - PANEL DOCENTE / CARGA DE NOTAS
+# =========================================================
+
+
+@app.route("/notas", methods=["GET", "POST"])
+def panel_notas():
+
+    # -----------------------------------------------------
+    # GUARDAR NOTA
+    # -----------------------------------------------------
+
+    if request.method == "POST":
+
+        id_alumno = request.form.get("id_alumno")
+
+        id_materia = request.form.get("id_materia")
+
+        nota_ingresada = request.form.get("nota")
+
+        # Validar alumno y materia
+        if not id_alumno or not id_materia:
+
+            flash("Debe seleccionar un alumno y una materia.", "error")
+
+            return redirect(url_for("panel_notas"))
+
+        # Validar nota y calcular regularidad
+        valida, nota, resultado = evaluar_nota(nota_ingresada)
+
+        if not valida:
+
+            flash(resultado, "error")
+
+            return redirect(url_for("panel_notas"))
+
+        # Guardar nota mediante la lógica existente
+        exito, mensaje = insertar_nota(int(id_alumno), int(id_materia), nota)
+
+        if exito:
+
+            flash(f"{mensaje} Regularidad: {resultado}.", "exito")
+
+        else:
+
+            flash(mensaje, "error")
+
+        return redirect(url_for("panel_notas"))
+
+    # -----------------------------------------------------
+    # CARGAR ALUMNOS Y MATERIAS
+    # -----------------------------------------------------
+
+    conexion = conectar_db()
+
+    conexion.row_factory = __import__("sqlite3").Row
+
+    cursor = conexion.cursor()
+
+    try:
+
+        filas_alumnos = cursor.execute("""
+            SELECT
+                id,
+                nombre,
+                apellido,
+                DNI
+            FROM alumnos
+            WHERE activo = 1
+            ORDER BY apellido, nombre
+            """).fetchall()
+
+        alumnos = []
+
+        for fila in filas_alumnos:
+
+            alumnos.append(
+                {
+                    "id": fila["id"],
+                    "nombre": fila["nombre"],
+                    "apellido": fila["apellido"],
+                    "dni": fila["DNI"],
+                }
+            )
+
+        filas_materias = cursor.execute("""
+            SELECT
+                id,
+                nombre
+            FROM materias
+            WHERE activo = 1
+            ORDER BY nombre
+            """).fetchall()
+
+        materias = []
+
+        for fila in filas_materias:
+
+            materias.append(
+                {
+                    "id": fila["id"],
+                    "nombre": fila["nombre"],
+                }
+            )
+
+        return render_template("notas.html", alumnos=alumnos, materias=materias)
+
+    finally:
+
+        conexion.close()
 
 
 # =========================================================
