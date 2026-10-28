@@ -130,9 +130,8 @@ def inicializar_base_datos():
 def registrar_inscripcion(dni_alumno, id_materia):
     """
     Registra la inscripción de un alumno a una materia.
-
-    Recibe el DNI del alumno, busca su ID interno
-    y guarda ese ID en la tabla inscripciones.
+    Evita que un alumno se inscriba más de una vez
+    en la misma materia.
     """
     conexion = conectar_db()
     cursor = conexion.cursor()
@@ -155,7 +154,7 @@ def registrar_inscripcion(dni_alumno, id_materia):
             id_materia = int(id_materia)
 
         except (TypeError, ValueError):
-            return False, "La materia indicada no es válida."
+            return (False, "La materia indicada no es válida.")
 
         fila_materia = cursor.execute(
             """
@@ -167,7 +166,23 @@ def registrar_inscripcion(dni_alumno, id_materia):
         ).fetchone()
 
         if fila_materia is None:
-            return False, "La materia indicada no existe."
+            return (False, "La materia indicada no existe.")
+
+        id_alumno = fila_alumno[0]
+
+        # Verificar inscripción duplicada
+        inscripcion_existente = cursor.execute(
+            """
+            SELECT id
+            FROM inscripciones
+            WHERE id_alumno = ?
+              AND id_materia = ?
+            """,
+            (id_alumno, id_materia),
+        ).fetchone()
+
+        if inscripcion_existente is not None:
+            return (False, "El alumno ya se encuentra inscripto en esa materia.")
 
         cursor.execute(
             """
@@ -175,12 +190,12 @@ def registrar_inscripcion(dni_alumno, id_materia):
                 (id_alumno, id_materia, fecha)
             VALUES (?, ?, ?)
             """,
-            (fila_alumno[0], id_materia, date.today().isoformat()),
+            (id_alumno, id_materia, date.today().isoformat()),
         )
 
         conexion.commit()
 
-        return True, "Inscripción registrada con éxito."
+        return (True, "Inscripción registrada con éxito.")
 
     except sqlite3.IntegrityError:
         conexion.rollback()
