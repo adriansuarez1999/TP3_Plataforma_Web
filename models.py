@@ -97,9 +97,28 @@ def inicializar_base_datos():
                     REFERENCES materias(id)
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS
+                        CREATE UNIQUE INDEX IF NOT EXISTS
                 ux_inscripcion_alumno_materia
                 ON inscripciones (id_alumno, id_materia);
+
+            CREATE TABLE IF NOT EXISTS asistencias (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_alumno INTEGER NOT NULL,
+                id_materia INTEGER NOT NULL,
+                fecha TEXT NOT NULL DEFAULT CURRENT_DATE,
+                estado TEXT NOT NULL
+                    CHECK (estado IN ('Presente', 'Ausente')),
+
+                FOREIGN KEY (id_alumno)
+                    REFERENCES alumnos(id)
+                    ON UPDATE CASCADE
+                    ON DELETE RESTRICT,
+
+                FOREIGN KEY (id_materia)
+                    REFERENCES materias(id)
+                    ON UPDATE CASCADE
+                    ON DELETE RESTRICT
+            );
             """)
 
         conexion.commit()
